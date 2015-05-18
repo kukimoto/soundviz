@@ -1,4 +1,4 @@
-# SimpleWebRTC - World's easiest WebRTC lib
+# Remote SOund Visualizaer
 
 
 #How to use
