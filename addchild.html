@@ -1,0 +1,63 @@
+<html>
+<head>
+<title>appendChildでHTMLの要素を追加するサンプルコード</title>
+</head>
+<style type="text/css">
+.className {
+    background-color: #000000;
+    color: #FFFFFF;
+}
+</style>
+<body>
+    <!--appendChild要素追加サンプル-->
+    <script type="text/javascript">
+		function drawcircle() {
+		  var canvas = document.getElementById('c1');
+		  if ( ! canvas || ! canvas.getContext ) { return false; }
+		  var ctx = canvas.getContext('2d');
+		  ctx.beginPath();
+		  ctx.arc(70, 70, 60, 0, Math.PI*2, false);
+		  ctx.stroke();
+
+		}
+        function addElement() {
+            var element = document.createElement('div');
+            element.id="gamediv";
+            //element.innerHTML = "テキスト";      
+            var objBody = document.getElementsByTagName("body").item(0);
+            objBody.appendChild(element);
+        }
+        function sample(){
+
+		    /* ID=gamedivの要素を取得 */
+		    var obj = document.getElementById('gamediv');
+		    if( obj == null ){
+			// ないよ！
+		        return;
+		    }
+
+		    /* canvasの要素を生成 */
+		    var canvas = document.createElement('canvas'); 
+		    canvas.id = "gamecanvas";    //ID
+		    canvas.height = 320;         //サイズ　縦
+		    canvas.width = 320;          //サイズ　横
+
+		    /* gamedivに、新しく作ったgamecanvasを追加 */
+		    obj.appendChild(canvas);
+
+		    //試しに文字描画
+		    var ctx = canvas.getContext('2d');
+		    ctx.beginPath();
+		  ctx.arc(70, 70, 60, 0, Math.PI*2, false);
+		  ctx.stroke();
+		}
+    </script>
+     
+    <!--要素追加ボタン-->
+    <form>
+    	<input type="button" value="要素を追加" onClick="sample()">
+    </form>
+	<div id ="gamediv"></div>
+
+</body>
+</html>

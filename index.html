@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SoundVidualizer</title>
+				<link rel="stylesheet" type="text/css" href="style.css">
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+		<script>
+		$(window).resize(function(){
+			var w = $(window).width();
+			var x = 500;
+			if (w <= x) {
+				$('#sample').css({
+					color: 'red'
+				});
+			} else {
+				$('#sample').css({
+					color: 'black'
+				});
+			}
+		});
+		</script>
+    </head>
+     <!---------------------------- -->
+    <body>
+        <h1 id="title">Start a room</h1>
+        <style>
+            .videoContainer {
+                position: relative;
+                width: 640px;
+                height:480px;
+				float:left;
+            }
+            .videoContainer video {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+            }
+            .volume_bar {
+                position: absolute;
+                width: 5px;
+                height: 2px;
+                right: 0px;
+                bottom: 0px;
+                background-color: #12acef;
+            }
+        </style>
+      
+        <div class="VideoContainer">
+            <canvas id="cv" width="360" height="360"></canvas>
+            <div id="localVolume" class="volume_bar"></div> 
+        </div>
+        <div id="remotes"></div> 
+
+        <script src="socket.io.js"></script>
+        <script src="simplewebrtc.bundle.js"></script>
+		<!-- 
+        <script src="simplewebrtc.js"></script>
+        -->
+        <script>
+            // grab the room from the URL
+            var room = location.search && location.search.split('?')[1];
+
+            // create our webrtc connection
+            var webrtc = new SimpleWebRTC({
+                // the id/element dom element that will hold "our" video
+                localVideoEl: 'localVideo',
+                // the id/element dom element that will hold remote videos
+                remoteVideosEl: 'remoteVideos',
+                // immediately ask for camera access
+                autoRequestMedia: true,
+                debug: false,
+                detectSpeakingEvents: true,
+                //autoAdjustMic: false
+                autoAdjustMic: true
+            });
+
+            // when it's ready, join if we got a room from the URL
+            webrtc.on('readyToCall', function () {
+                // you can name it anything
+                if (room) webrtc.joinRoom(room);
+            });
+
+            function showVolume(el, volume) {
+                if(!el)return;
+
+                var ctx = document.getElementById('cv').getContext("2d");
+                ctx.beginPath();
+                var r;
+                if (volume < -60) { // vary between -45 and -20
+                    r = 0;
+                } else if (volume > -20) {
+                    r=120;
+                } else {
+                    r = 180/60*volume+180; //-60 is minimam of volume
+                }
+                //console.log('r='+r)
+                ctx.arc(180, 180, r, 0, Math.PI*2, true);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgb(155, 188, 89)'; // 緑    
+                ctx.stroke();
+                ctx.fillStyle='rgba(34,51,68,0.1)'
+                ctx.fillRect(0,0,360,360);
+
+            }
+
+
+            webrtc.on('channelMessage', function (peer, label, data) {
+                if (data.type == 'volume') {
+                    showVolume(document.getElementById('remote', data.volume));   
+                }
+            });
+            
+            webrtc.on('videoAdded', function (video, peer) {
+                console.log('video added', peer);
+                var remotes = document.getElementById('remotes');
+                if (remotes) {
+                    var d=document.createElement('div');
+                    d.id = 'volume_' + peer.id;
+                    d.className = 'volume';
+                    var canvas = document.createElement('canvas'); 
+                    canvas.id = 'cv_'+ peer.id;    //ID
+                    canvas.height = 360;         //サイズ　縦
+                    canvas.width = 360;          //サイズ　横
+                    canvas.style.border="1px solid";
+                    //var context = canvas.getContext("2d");
+                    //context.fillRect(20.5, 40.5, 30, 50);
+                    showVolume(d, -40);
+                    //showVolume(document.getElementById('volume_' + peer.id), -40);
+                    
+/*
+                    ctx.beginPath();
+                    ctx.arc(70, 70, 60, 0, Math.PI*2, false);
+                    ctx.stroke();
+*/
+
+                    //d.appendChild(canvas);
+                    remotes.appendChild(d);
+
+					var loginsnd = new Audio();
+					loginsnd.src = "login.wav"
+					loginsnd.play();
+                }else{
+                    console.log("add error")
+                }
+            });
+            
+            webrtc.on('videoRemoved', function (video, peer) {
+                console.log('video removed ', peer);
+                var remotes = document.getElementById('remotes');
+                var el = document.getElementById('cv' + webrtc.getDomId(peer));
+                if (remotes && el) {
+                    remotes.removeChild(el);
+					var logoutsnd = new Audio();
+					logoutsnd.src = "logout.wav"
+					logoutsnd.play();
+                }
+            });
+
+            // remote volume has changed
+            webrtc.on('remoteVolumeChange', function (peer, volume) {
+                showVolume(document.getElementById('volume_' + peer.id), volume);
+            });
+
+            webrtc.on('volumeChange', function (volume, treshold) {
+                //console.log('own volume', volume);
+                showVolume(document.getElementById('localVolume'), volume);
+            });
+
+            // Since we use this twice we put it here
+            function setRoom(name) {
+                $('form').remove();
+                $('h1').text(name);
+                $('#subTitle').text('Link to join: ' + location.href);
+                $('body').addClass('active');
+            }
+
+            if (room) {
+                setRoom(room);
+            } else {
+                $('form').submit(function () {
+                    var val = $('#sessionInput').val().toLowerCase().replace(/\s/g, '-').replace(/[^A-Za-z0-9_\-]/g, '');
+                    webrtc.createRoom(val, function (err, name) {
+                        console.log(' create room cb', arguments);
+                    
+                        var newUrl = location.pathname + '?' + name;
+                        if (!err) {
+                            history.replaceState({foo: 'bar'}, null, newUrl);
+                            setRoom(name);
+                        } else {
+                            console.log(err);
+                        }
+                    });
+                    return false;          
+                });
+            }
+
+/*            var button = $('#screenShareButton'),
+                setButton = function (bool) {
+                    button.text(bool ? 'share screen' : 'stop sharing');
+                };
+            webrtc.on('localScreenStopped', function () {
+                setButton(true);
+            });
+
+            setButton(true);
+
+            button.click(function () {
+                if (webrtc.getLocalScreen()) {
+                    webrtc.stopScreenShare();
+                    setButton(true);
+                } else {
+                    webrtc.shareScreen(function (err) {
+                        if (err) {
+                            setButton(true);
+                        } else {
+                            setButton(false);
+                        }
+                    });
+                    
+                }
+            });*/
+        </script>
+    </body>
+</html>
