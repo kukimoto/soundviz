@@ -1,6 +1,10 @@
 # SimpleWebRTC - World's easiest WebRTC lib
 
 
+#How to use
+
+http://example.com/soundviz/?aaa
+
 Want to see it in action? Check out the demo: https://talky.io/
 
 
